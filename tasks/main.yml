@@ -35,7 +35,7 @@
       until: (ad_result is changed) or
              (ad_result is succeeded)
       retries: 10
-      #no_log: True
+      no_log: True
 # Block Conditionals
   when: ad_status.rc != 0
 # End block
