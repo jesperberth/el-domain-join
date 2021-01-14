@@ -1,0 +1,87 @@
+---
+# tasks file for linux-join-domain-role-survey
+- name: Prep | install required packages
+  package:
+    name: "{{ required_pkgs }}"
+    state: present
+  notify:
+    - restart_realmd
+
+- name: Verify | Checking Domain Join status
+  command: id {{ ad_server_user }}
+  register: ad_status
+  changed_when: false
+  ignore_errors: true
+
+# Begin block
+- name: Domain | remove configs, discover, and join {{ ad_server_domain }}
+  block:
+    - name: Prep | stop ntp service
+      systemd:
+        name: ntpd
+        state: stopped
+
+    - name: Prep | Sync time with AD {{ ad_server_ip }}
+      command: ntpdate {{ ad_server_ip }}
+      register: timesync_result
+      changed_when: false
+
+    - name: Prep | start ntp service
+      systemd:
+        name: ntpd
+        state: started
+        enabled: yes
+
+    - name: Prep | Removing existing config files
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_items:
+        - /etc/krb5.keytab
+        - /var/lib/sss/db/*
+        - /var/log/sssd/*
+        - /etc/sssd/sssd.conf
+
+    - name: Domain | discovering AD {{ ad_server_domain }}
+      command: realm discover {{ ad_server_domain }}
+
+    - name: Domain | Join {{ ansible_hostname }} to {{ ad_server_domain }}
+      command: /bin/bash -c "echo {{ ad_server_pass }} | realm join -v --user={{ ad_server_user }} {{ ad_server_domain }} && sleep 10"
+      register: ad_result
+      until: (ad_result is changed) or
+             (ad_result is succeeded)
+      retries: 10
+      no_log: true
+# Block Conditionals
+  when: ad_status.rc != 0
+# End block
+
+
+- name: Configue | sssd.conf
+  blockinfile:
+    path: /etc/sssd/sssd.conf
+    block: |
+      [sssd]
+      domains = {{ activedirectorydomain }}
+      config_file_version = 2
+      services = nss, pam
+
+      [domain/{{ activedirectorydomain }}]
+      ad_domain = {{ activedirectorydomain }}
+      krb5_realm = {{ activedirectorydomain|upper }}
+      realmd_tags = manages-system joined-with-adcli
+      cache_credentials = True
+      id_provider = ad
+      krb5_store_password_if_offline = True
+      default_shell = /bin/bash
+      ldap_id_mapping = True
+      use_fully_qualified_names = False
+      fallback_homedir = /home/%u
+      access_provider = ad
+  notify:
+    - restart_sssd
+
+- name: Verify | read /etc/sssd/sssd.conf
+  command: cat /etc/sssd/sssd.conf
+  register: sssd_conf_content
+  changed_when: sssd_conf_content.rc != 0
