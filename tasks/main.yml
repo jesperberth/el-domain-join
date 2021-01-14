@@ -62,13 +62,13 @@
     path: /etc/sssd/sssd.conf
     block: |
       [sssd]
-      domains = {{ activedirectorydomain }}
+      domains = {{ ad_server_domain }}
       config_file_version = 2
       services = nss, pam
 
-      [domain/{{ activedirectorydomain }}]
-      ad_domain = {{ activedirectorydomain }}
-      krb5_realm = {{ activedirectorydomain|upper }}
+      [domain/{{ ad_server_domain }}]
+      ad_domain = {{ ad_server_domain }}
+      krb5_realm = {{ ad_server_domain|upper }}
       realmd_tags = manages-system joined-with-adcli
       cache_credentials = True
       id_provider = ad
