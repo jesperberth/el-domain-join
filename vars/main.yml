@@ -8,5 +8,3 @@ required_pkgs:
   - adcli
   - samba-common
   - samba-common-tools
-  - ntpdate
-  - ntp
