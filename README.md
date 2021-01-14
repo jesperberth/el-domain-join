@@ -10,10 +10,18 @@ Requirements
 Role Variables
 --------------
 
-*  ad_server_user
-*  ad_server_domain
-*  ad_server_ip
-*  ad_server_pass
+*  ad_server_user - username for admin
+*  ad_server_pass - password for admin
+*  ad_server_domain - domain name
+
+´´´bash
+
+---
+ad_server_user: Administrator
+ad_server_pass: Your Password
+ad_server_domain: domain.local
+
+´´´´
 
 Dependencies
 ------------
@@ -25,7 +33,7 @@ Including an example of how to use your role (for instance, with variables passe
 
     - hosts: servers
       roles:
-         - { role: username.rolename, x: 42 }
+         - jesperberth.el-domain-join
 
 License
 -------
